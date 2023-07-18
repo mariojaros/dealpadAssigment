@@ -1,0 +1,96 @@
+trigger: none
+
+parameters:
+- name: devMatchSubmissionId
+  displayName: DevMatch Submission ID
+  type: string
+  default: NULL
+
+- name: devMatchRepoUrl
+  displayName: A DevMatch git repo
+  type: string
+  default: NULL
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  DEVMATCH_SUBMISSION_ID: ${{ parameters.devMatchSubmissionId }}
+  DEVMATCH_USER_REPO_URL: ${{ parameters.devMatchRepoUrl }}
+
+steps:
+- task: CmdLine@2
+  inputs:
+    script: |
+      echo devmatch identifier is ${{ variables.DEVMATCH_SUBMISSION_ID }}
+  displayName: "devMatchSubmissionId: ${{ variables.DEVMATCH_SUBMISSION_ID }}"
+  condition: ne(variables['DEVMATCH_SUBMISSION_ID'], 'NULL')
+  
+- task: NodeTool@0
+  inputs:
+    versionSpec: '16.x'
+  displayName: 'Install Node.js'
+
+# Java tool installer v0
+- task: JavaToolInstaller@0
+  inputs:
+    versionSpec: '8' # string. Required. JDK version. Default: 8.
+    jdkArchitectureOption: x64 # 'x64' | 'x86'. Required. JDK architecture. 
+    jdkSourceOption: PreInstalled
+
+- script: |
+    mkdir $(System.DefaultWorkingDirectory)/backend/publish
+
+# Now we overlay the user repo on top of the original repo
+# Save the original HEAD so that we can generated a diff later
+- script: |
+    git rev-parse HEAD > ORIGINAL_HEAD_COMMIT
+    echo "Repo to pull from ${{ variables.DEVMATCH_USER_REPO_URL }}"
+    git remote add devmatch ${{ variables.DEVMATCH_USER_REPO_URL }}
+    git fetch --all
+    git pull --rebase devmatch main
+  condition: ne(variables['DEVMATCH_USER_REPO_URL'], 'NULL')
+  displayName: Overlay user repo
+  failOnStderr: false
+  continueOnError: false
+
+- script: |
+    cat ORIGINAL_HEAD_COMMIT 
+    cat ORIGINAL_HEAD_COMMIT | git diff `xargs` > $(System.DefaultWorkingDirectory)/backend/publish/CODE-DIFF.DIFF
+  condition: ne(variables['DEVMATCH_USER_REPO_URL'], 'NULL')
+  displayName: Save code diff
+  failOnStderr: true
+
+- script: |
+    yarn install
+  displayName: 'install dependencies'
+  workingDirectory: backend
+
+- script: |
+    yarn serverless dynamodb install
+  displayName: 'dynamodb install'
+  workingDirectory: backend
+  failOnStderr: false
+
+- script: |
+    yarn serverless dynamodb start &
+  displayName: 'dynamodb start'
+  workingDirectory: backend
+  failOnStderr: false
+
+#- script: |
+#    yarn test
+#  displayName: 'run unit tests'
+#  workingDirectory: backend
+
+- script: |
+    yarn jest --testMatch "**/.devmatch/(*.)+(spec|tests).[jt]s?(x)" --json --outputFile publish/test-output.json
+  displayName: 'run devmatch test cases'
+  workingDirectory: backend
+
+- task: PublishBuildArtifacts@1
+  condition: always()
+  inputs:
+    PathtoPublish: '$(System.DefaultWorkingDirectory)/backend/publish'
+    ArtifactName: 'test-output'
+    publishLocation: Container
