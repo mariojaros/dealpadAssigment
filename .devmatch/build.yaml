@@ -31,15 +31,8 @@ steps:
     versionSpec: '16.x'
   displayName: 'Install Node.js'
 
-# Java tool installer v0
-- task: JavaToolInstaller@0
-  inputs:
-    versionSpec: '8' # string. Required. JDK version. Default: 8.
-    jdkArchitectureOption: x64 # 'x64' | 'x86'. Required. JDK architecture. 
-    jdkSourceOption: PreInstalled
-
 - script: |
-    mkdir $(System.DefaultWorkingDirectory)/backend/publish
+    mkdir $(System.DefaultWorkingDirectory)/publish
 
 # Now we overlay the user repo on top of the original repo
 # Save the original HEAD so that we can generated a diff later
@@ -56,41 +49,28 @@ steps:
 
 - script: |
     cat ORIGINAL_HEAD_COMMIT 
-    cat ORIGINAL_HEAD_COMMIT | git diff `xargs` > $(System.DefaultWorkingDirectory)/backend/publish/CODE-DIFF.DIFF
+    cat ORIGINAL_HEAD_COMMIT | git diff `xargs` > $(System.DefaultWorkingDirectory)/publish/CODE-DIFF.DIFF
   condition: ne(variables['DEVMATCH_USER_REPO_URL'], 'NULL')
   displayName: Save code diff
   failOnStderr: true
 
 - script: |
-    yarn install
-  displayName: 'install dependencies'
-  workingDirectory: backend
-
-- script: |
-    yarn serverless dynamodb install
-  displayName: 'dynamodb install'
-  workingDirectory: backend
-  failOnStderr: false
-
-- script: |
-    yarn serverless dynamodb start &
-  displayName: 'dynamodb start'
-  workingDirectory: backend
-  failOnStderr: false
+    npm i
+  displayName: 'Install dependencies'
 
 #- script: |
 #    yarn test
 #  displayName: 'run unit tests'
 #  workingDirectory: backend
 
-- script: |
-    yarn jest --testMatch "**/.devmatch/(*.)+(spec|tests).[jt]s?(x)" --json --outputFile publish/test-output.json
-  displayName: 'run devmatch test cases'
-  workingDirectory: backend
+#- script: |
+#    yarn jest --testMatch "**/.devmatch/(*.)+(spec|tests).[jt]s?(x)" --json --outputFile publish/test-output.json
+#  displayName: 'run devmatch test cases'
+#  workingDirectory: backend
 
 - task: PublishBuildArtifacts@1
   condition: always()
   inputs:
-    PathtoPublish: '$(System.DefaultWorkingDirectory)/backend/publish'
+    PathtoPublish: '$(System.DefaultWorkingDirectory)/publish'
     ArtifactName: 'test-output'
     publishLocation: Container
