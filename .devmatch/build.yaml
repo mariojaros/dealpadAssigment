@@ -41,7 +41,7 @@ steps:
     echo "Repo to pull from ${{ variables.DEVMATCH_USER_REPO_URL }}"
     git remote add devmatch ${{ variables.DEVMATCH_USER_REPO_URL }}
     git fetch --all
-    git pull --rebase devmatch main
+    git pull --rebase devmatch master
   condition: ne(variables['DEVMATCH_USER_REPO_URL'], 'NULL')
   displayName: Overlay user repo
   failOnStderr: false
@@ -58,10 +58,10 @@ steps:
     npm i
   displayName: 'Install dependencies'
 
-#- script: |
-#    yarn test
-#  displayName: 'run unit tests'
-#  workingDirectory: backend
+- script: |
+    CI=true npm test
+  displayName: 'run unit tests'
+  workingDirectory: backend
 
 #- script: |
 #    yarn jest --testMatch "**/.devmatch/(*.)+(spec|tests).[jt]s?(x)" --json --outputFile publish/test-output.json
