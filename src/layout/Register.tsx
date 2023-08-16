@@ -1,16 +1,20 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import PlayerContext from '../components/PlayerContext';
-import OffCanvasMenu from './OffCanvasMenu';
+import MenuButton from './MenuButton';
+import Menu from './Menu';
+import { MenuContext } from '../components/MenuContext';
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
-    const { setCurrentPlayer } = useContext(PlayerContext)
+    const { setCurrentPlayer } = useContext(PlayerContext);
 
     const [battleName, setBattleName] = useState<string>('');
     const [email, setEmail] = useState<string>('');
     const [phoneNumber, setPhoneNumber] = useState<string>('');
+    const { isOpen, setIsOpen } = useContext(MenuContext);
+    let location = useLocation();
 
     const validateForm = useCallback((): boolean => {
         let valid = true;
@@ -45,46 +49,57 @@ const Register: React.FC = () => {
         [validateForm]
     );
 
+    useEffect(() => {
+        setIsOpen(false);
+    }, [location]);
+
     return (
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex justify-center items-center h-screen relative">
+            <div className="relative flex flex-col items-center gap-4">
 
-            <form onSubmit={handleFormSubmit} className='flex flex-col items-center gap-4'>
-                <div className="w-full flex items-center justify-between">
-                    <h1>Please Register</h1>
-                    <OffCanvasMenu />
-                </div>
+                <form onSubmit={handleFormSubmit} className='flex flex-col items-center gap-4 w-full'>
+                    <div className="w-full flex items-center justify-between">
+                        <div className='flex-1 flex items-center justify-center'>Please Register</div>
 
-                <input
-                    className="bg-gray-300 rounded p-2"
-                    type="text"
-                    value={battleName}
-                    onChange={event => setBattleName(event.target.value)}
-                    placeholder="Battle Name"
-                    maxLength={50}
-                    required
-                />
+                        <MenuButton className='flex-1' />
+                    </div>
 
-                <input
-                    className="bg-gray-300 rounded p-2"
-                    type="email"
-                    value={email}
-                    onChange={event => setEmail(event.target.value)}
-                    placeholder="Email"
-                    maxLength={150}
-                    required
-                />
+                    <input
+                        className="bg-gray-300 rounded p-2"
+                        type="text"
+                        value={battleName}
+                        onChange={event => setBattleName(event.target.value)}
+                        placeholder="Battle Name"
+                        maxLength={50}
+                        required
+                    />
 
-                <input
-                    className="bg-gray-300 rounded p-2"
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={event => setPhoneNumber(event.target.value)}
-                    placeholder="Phone Number"
-                    maxLength={50}
-                />
+                    <input
+                        className="bg-gray-300 rounded p-2"
+                        type="email"
+                        value={email}
+                        onChange={event => setEmail(event.target.value)}
+                        placeholder="Email"
+                        maxLength={150}
+                        required
+                    />
 
-                <button type="submit">Register</button>
-            </form>
+                    <input
+                        className="bg-gray-300 rounded p-2"
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={event => setPhoneNumber(event.target.value)}
+                        placeholder="Phone Number"
+                        maxLength={50}
+                    />
+                    <div>
+                        <button className="bg-blue-500 hover:opacity-90 text-white rounded px-4 py-2" type="submit">Register</button>
+                    </div>
+
+                </form>
+
+                <Menu />
+            </div>
         </div>
     );
 };
